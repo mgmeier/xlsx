@@ -4,7 +4,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 module Codec.Xlsx.Types.Table where
 
-import Control.Lens (makeLenses)
+-- import Control.Lens (makeLenses)
 import Control.DeepSeq (NFData)
 import Data.Maybe (catMaybes, maybeToList)
 import Data.Text (Text)
@@ -74,7 +74,7 @@ data TableColumn = TableColumn
   } deriving (Eq, Show, Generic)
 instance NFData TableColumn
 
-makeLenses ''Table
+-- makeLenses ''Table
 
 {-------------------------------------------------------------------------------
   Parsing

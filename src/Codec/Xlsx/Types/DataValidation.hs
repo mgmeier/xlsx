@@ -6,11 +6,11 @@
 module Codec.Xlsx.Types.DataValidation where
 
 import Control.DeepSeq (NFData)
-import Control.Lens.TH (makeLenses)
+-- import Control.Lens.TH (makeLenses)
 import Control.Monad ((>=>))
 import Data.ByteString (ByteString)
 import Data.Char (isSpace)
-import Data.Default
+import Data.Default.Class
 import qualified Data.Map as M
 import Data.Maybe (catMaybes, maybeToList)
 import Data.Monoid ((<>))
@@ -73,7 +73,7 @@ data DataValidation = DataValidation
     } deriving (Eq, Show, Generic)
 instance NFData DataValidation
 
-makeLenses ''DataValidation
+-- makeLenses ''DataValidation
 
 instance Default DataValidation where
     def = DataValidation

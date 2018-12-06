@@ -12,17 +12,19 @@ module Codec.Xlsx.Types.Cell
   , formulaDataFromCursor
   , applySharedFormulaOpts
   , Cell(..)
+  {-
   , cellStyle
   , cellValue
   , cellComment
   , cellFormula
+  -}
   , CellMap
   ) where
 
 import Control.Arrow (first)
-import Control.Lens.TH (makeLenses)
+-- import Control.Lens.TH (makeLenses)
 import Control.DeepSeq (NFData)
-import Data.Default
+import Data.Default.Class
 import Data.Map (Map)
 import qualified Data.Map as M
 import Data.Maybe (catMaybes, listToMaybe)
@@ -101,11 +103,9 @@ data Cell = Cell
     , _cellFormula :: Maybe CellFormula
     } deriving (Eq, Show, Generic)
 instance NFData Cell
+instance Default Cell
 
-instance Default Cell where
-    def = Cell Nothing Nothing Nothing Nothing
-
-makeLenses ''Cell
+-- makeLenses ''Cell
 
 -- | Map containing cell values which are indexed by row and column
 -- if you need to use more traditional (x,y) indexing please you could

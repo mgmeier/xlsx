@@ -10,7 +10,7 @@ module Codec.Xlsx.Writer
 
 import qualified Codec.Archive.Zip as Zip
 import Control.Arrow (second)
-import Control.Lens hiding (transform, (.=))
+-- import Control.Lens hiding (transform, (.=))
 import Control.Monad (forM)
 import Control.Monad.ST
 import Control.Monad.State (evalState, get, put)
@@ -74,7 +74,7 @@ fromXlsx pt xlsx =
         , ("extended-properties", "docProps/app.xml") ]
     rootRels = [ relEntry (unsafeRefId i) typ trg
                | (i, (typ, trg)) <- zip [1..] rootFiles ]
-    customProps = xlsx ^. xlCustomProperties
+    customProps = _xlCustomProperties xlsx
     (customPropFiles, customPropFileRels) = case M.null customProps of
         True  -> ([], [])
         False -> ([ FileData "docProps/custom.xml"
@@ -83,7 +83,7 @@ fromXlsx pt xlsx =
                     (customPropsXml (CustomProperties customProps)) ],
                   [ ("custom-properties", "docProps/custom.xml") ])
     workbookFiles = bookFiles xlsx
-    sheetNames = xlsx ^. xlSheets . to (map fst)
+    sheetNames = map fst (_xlSheets xlsx)
 
 singleSheetFiles :: Int
                  -> Cells
@@ -94,7 +94,7 @@ singleSheetFiles :: Int
 singleSheetFiles n cells pivFileDatas ws tblIdRef = do
     ref <- newSTRef 1
     mCmntData <- genComments n cells ref
-    mDrawingData <- maybe (return Nothing) (fmap Just . genDrawing n ref) (ws ^. wsDrawing)
+    mDrawingData <- maybe (return Nothing) (fmap Just . genDrawing n ref) (_wsDrawing ws)
     pivRefs <- forM pivFileDatas $ \fd -> do
       refId <- nextRefId ref
       return (refId, fd)
@@ -113,23 +113,23 @@ singleSheetFiles n cells pivFileDatas ws tblIdRef = do
         root = addNS "http://schemas.openxmlformats.org/spreadsheetml/2006/main" Nothing $
             elementListSimple "worksheet" rootEls
         rootEls = catMaybes $
-            [ elementListSimple "sheetViews" . map (toElement "sheetView") <$> ws ^. wsSheetViews
-            , nonEmptyElListSimple "cols" . map (toElement "col") $ ws ^. wsColumnsProperties
+            [ elementListSimple "sheetViews" . map (toElement "sheetView") <$> _wsSheetViews ws
+            , nonEmptyElListSimple "cols" . map (toElement "col") $ _wsColumnsProperties ws
             , Just . elementListSimple "sheetData" $
-              sheetDataXml cells (ws ^. wsRowPropertiesMap) (ws ^. wsSharedFormulas)
-            , toElement "sheetProtection" <$> (ws ^. wsProtection)
-            , toElement "autoFilter" <$> (ws ^. wsAutoFilter)
-            , nonEmptyElListSimple "mergeCells" . map mergeE1 $ ws ^. wsMerges
+              sheetDataXml cells (_wsRowPropertiesMap ws) (_wsSharedFormulas ws)
+            , toElement "sheetProtection" <$> (_wsProtection ws)
+            , toElement "autoFilter" <$> (_wsAutoFilter ws)
+            , nonEmptyElListSimple "mergeCells" . map mergeE1 $ _wsMerges ws
             ] ++ map (Just . toElement "conditionalFormatting") cfPairs ++
             [ nonEmptyElListSimple "dataValidations" $ map (toElement "dataValidation") dvPairs
-            , toElement "pageSetup" <$> ws ^. wsPageSetup
+            , toElement "pageSetup" <$> _wsPageSetup ws
             , fst3 <$> mDrawingData
             , fst <$> mCmntData
             , nonEmptyElListSimple "tableParts"
                 [leafElement "tablePart" [odr "id" .= rId] | (rId, _) <- refTables]
             ]
-        cfPairs = map CfPair . M.toList $ ws ^. wsConditionalFormattings
-        dvPairs = map DvPair . M.toList $ ws ^. wsDataValidations
+        cfPairs = map CfPair . M.toList $ _wsConditionalFormattings ws
+        dvPairs = map DvPair . M.toList $ _wsDataValidations ws
         mergeE1 r = leafElement "mergeCell" [("ref" .= r)]
 
         sheetRels = if null referencedFiles
@@ -251,21 +251,22 @@ genDrawing n ref dr = do
           , ("a",   "http://schemas.openxmlformats.org/drawingml/2006/main")
           , ("r",   "http://schemas.openxmlformats.org/officeDocument/2006/relationships") ]
     dr' = Drawing{ _xdrAnchors = reverse anchors' }
-    (anchors', images, charts, _) = foldl' collectFile ([], [], [], 1) (dr ^. xdrAnchors)
+    (anchors', images, charts, _) = foldl' collectFile ([], [], [], 1) (_xdrAnchors dr)
     collectFile :: ([Anchor RefId RefId], [Maybe (Int, FileInfo)], [(Int, ChartSpace)], Int)
                 -> Anchor FileInfo ChartSpace
                 -> ([Anchor RefId RefId], [Maybe (Int, FileInfo)], [(Int, ChartSpace)], Int)
     collectFile (as, fis, chs, i) anch0 =
-        case anch0 ^. anchObject of
+        case _anchObject anch0 of
           Picture {..} ->
-            let fi = (i,) <$> _picBlipFill ^. bfpImageInfo
+            let fi = (i,) <$> _bfpImageInfo _picBlipFill -- _picBlipFill ^. bfpImageInfo
                 pic' =
                   Picture
                   { _picMacro = _picMacro
                   , _picPublished = _picPublished
                   , _picNonVisual = _picNonVisual
                   , _picBlipFill =
-                      (_picBlipFill & bfpImageInfo ?~ RefId ("rId" <> txti i))
+                      -- (_picBlipFill & bfpImageInfo ?~ RefId ("rId" <> txti i))
+                      _picBlipFill {_bfpImageInfo = Just $ RefId ("rId" <> txti i)}
                   , _picShapeProperties = _picShapeProperties
                   }
                 anch = anch0 {_anchObject = pic'}
@@ -468,7 +469,7 @@ value (XlsxBool False) = "0"
 value (XlsxError eType) = toAttrVal eType
 
 transformSheetData :: SharedStringTable -> Worksheet -> Cells
-transformSheetData shared ws = map transformRow $ toRows (ws ^. wsCells)
+transformSheetData shared ws = map transformRow $ toRows (_wsCells ws)
   where
     transformRow = second (map transformCell)
     transformCell (c, Cell{..}) =
@@ -483,7 +484,8 @@ bookFiles :: Xlsx -> [FileData]
 bookFiles xlsx = runST $ do
   ref <- newSTRef 1
   ssRId <- nextRefId ref
-  let sheets = xlsx ^. xlSheets . to (map snd)
+  --  let sheets = xlsx ^. xlSheets . to (map snd)
+  let sheets = map snd (_xlSheets xlsx)
       shared = sstConstruct sheets
       sharedStrings =
         (ssRId, FileData "xl/sharedStrings.xml" (smlCT "sharedStrings") "sharedStrings" $
@@ -491,14 +493,14 @@ bookFiles xlsx = runST $ do
   stRId <- nextRefId ref
   let style =
         (stRId, FileData "xl/styles.xml" (smlCT "styles") "styles" $
-              unStyles (xlsx ^. xlStyles))
+              unStyles (_xlStyles xlsx))
   let PvGenerated { pvgCacheFiles = cacheIdFiles
                   , pvgOthers = pivotOtherFiles
                   , pvgSheetTableFiles = sheetPivotTables
                   } =
         generatePivotFiles
           [ (_wsCells, _wsPivotTables)
-          | (_, Worksheet {..}) <- xlsx ^. xlSheets
+          | (_, Worksheet {..}) <- _xlSheets xlsx
           ]
       sheetCells = map (transformSheetData shared) sheets
       sheetInputs = zip3 sheetCells sheetPivotTables sheets
@@ -508,7 +510,7 @@ bookFiles xlsx = runST $ do
     (sheetFile, others) <- singleSheetFiles i cells pvTables sheet tblIdRef
     return ((rId, sheetFile), others)
   let sheetFiles = map fst allSheetFiles
-      sheetNameByRId = zip (map fst sheetFiles) (xlsx ^. xlSheets . to (map fst))
+      sheetNameByRId = zip (map fst sheetFiles) (map fst $ _xlSheets xlsx) --(xlsx ^. xlSheets . to (map fst))
       sheetOthers = concatMap snd allSheetFiles
   cacheRefFDsById <- forM cacheIdFiles $ \(cacheId, fd) -> do
       refId <- nextRefId ref
@@ -516,7 +518,7 @@ bookFiles xlsx = runST $ do
   let cacheRefsById = [ (cId, rId) | (cId, (rId, _)) <- cacheRefFDsById ]
       cacheRefs = map snd cacheRefFDsById
       bookFile = FileData "xl/workbook.xml" (smlCT "sheet.main") "officeDocument" $
-                 bookXml sheetNameByRId (xlsx ^. xlDefinedNames) cacheRefsById (xlsx ^. xlDateBase)
+                 bookXml sheetNameByRId (_xlDefinedNames xlsx) cacheRefsById (_xlDateBase xlsx)
       rels = FileData "xl/_rels/workbook.xml.rels"
              "application/vnd.openxmlformats-package.relationships+xml"
              "relationships" relsXml

@@ -12,9 +12,9 @@ module Codec.Xlsx.Types.Drawing where
 
 import Control.Arrow (first)
 import Control.DeepSeq (NFData)
-import Control.Lens.TH
+-- import Control.Lens.TH
 import Data.ByteString.Lazy (ByteString)
-import Data.Default
+import Data.Default.Class
 import qualified Data.Map as M
 import Data.Maybe (catMaybes, listToMaybe, mapMaybe)
 import Data.Text (Text)
@@ -238,10 +238,12 @@ type Drawing = GenericDrawing FileInfo ChartSpace
 
 type UnresolvedDrawing = GenericDrawing RefId RefId
 
+{-
 makeLenses ''Anchor
 makeLenses ''DrawingObject
 makeLenses ''BlipFillProperties
 makeLenses ''GenericDrawing
+-}
 
 {-------------------------------------------------------------------------------
   Default instances

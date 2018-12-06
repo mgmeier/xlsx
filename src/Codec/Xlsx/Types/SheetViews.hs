@@ -10,6 +10,7 @@ module Codec.Xlsx.Types.SheetViews (
   , SheetViewType(..)
   , PaneType(..)
   , PaneState(..)
+  {-
     -- * Lenses
     -- ** SheetView
   , sheetViewColorId
@@ -44,13 +45,14 @@ module Codec.Xlsx.Types.SheetViews (
   , paneTopLeftCell
   , paneXSplit
   , paneYSplit
+  -}
   ) where
 
 import GHC.Generics (Generic)
 
-import Control.Lens (makeLenses)
+-- import Control.Lens (makeLenses)
 import Control.DeepSeq (NFData)
-import Data.Default
+import Data.Default.Class
 import Data.Maybe (catMaybes, maybeToList, listToMaybe)
 import Text.XML
 import Text.XML.Cursor
@@ -305,10 +307,11 @@ instance NFData PaneState
 {-------------------------------------------------------------------------------
   Lenses
 -------------------------------------------------------------------------------}
-
+{-
 makeLenses ''SheetView
 makeLenses ''Selection
 makeLenses ''Pane
+-}
 
 {-------------------------------------------------------------------------------
   Default instances

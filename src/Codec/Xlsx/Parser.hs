@@ -21,7 +21,7 @@ import Control.Arrow (left)
 import Control.Error.Safe (headErr)
 import Control.Error.Util (note)
 import Control.Exception (Exception)
-import Control.Lens hiding ((<.>), element, views)
+-- import Control.Lens hiding ((<.>), element, views)
 import Control.Monad (forM, join, void)
 import Control.Monad.Except (catchError, throwError)
 import Data.Bool (bool)
@@ -217,7 +217,8 @@ extractSheetFast ar sst contentTypes caches wf = do
             | (r, cmnt) <- maybe [] CommentTable.toList commentsMap
             ]
           assignComment withCmnt noCmnt =
-            noCmnt & cellComment .~ (withCmnt ^. cellComment)
+            -- noCmnt & cellComment .~ (withCmnt ^. cellComment)
+            noCmnt {_cellComment = _cellComment withCmnt}
           mergeComments = M.unionWith assignComment commentCells
       tables <- forM tableIds $ \rId -> do
         fp <- lookupRelPath filePath sheetRels rId
@@ -232,10 +233,12 @@ extractSheetFast ar sst contentTypes caches wf = do
         note (InconsistentXlsx $ "Bad pivot table in " <> T.pack ptPath) $
           parsePivotTable (flip Prelude.lookup caches) bs
 
-      return $ ws & wsTables .~ tables
-                  & wsCells %~ mergeComments
-                  & wsDrawing .~ drawing
-                  & wsPivotTables .~ pivotTables
+      return $ ws { _wsTables = tables
+                  -- , _wsCells %~ mergeComments
+                  , _wsCells        = mergeComments (_wsCells ws)
+                  , _wsDrawing      = drawing
+                  , _wsPivotTables  = pivotTables
+                  }
     liftEither :: Either Text a -> Parser a
     liftEither = left (\t -> InvalidFile filePath t)
     justNonEmpty v@(Just (_:_)) = v
@@ -575,21 +578,21 @@ getDrawing ar contentTypes fp = do
     cur <- xmlCursorRequired ar fp
     drawingRels <- getRels ar fp
     unresolved <- headErr (InvalidFile fp "Couldn't parse drawing") (fromCursor cur)
-    anchors <- forM (unresolved ^. xdrAnchors) $ resolveFileInfo drawingRels
+    anchors <- forM (_xdrAnchors unresolved) $ resolveFileInfo drawingRels
     return $ Drawing anchors
   where
     resolveFileInfo :: Relationships -> Anchor RefId RefId -> Parser (Anchor FileInfo ChartSpace)
     resolveFileInfo rels uAnch =
-      case uAnch ^. anchObject of
+      case _anchObject uAnch of
         Picture {..} -> do
-          let mRefId = _picBlipFill ^. bfpImageInfo
+          let mRefId = _bfpImageInfo _picBlipFill
           mFI <- lookupFI rels mRefId
           let pic' =
                 Picture
                 { _picMacro = _picMacro
                 , _picPublished = _picPublished
                 , _picNonVisual = _picNonVisual
-                , _picBlipFill = (_picBlipFill & bfpImageInfo .~ mFI)
+                , _picBlipFill = _picBlipFill {_bfpImageInfo = mFI}
                 , _picShapeProperties = _picShapeProperties
                 }
           return uAnch {_anchObject = pic'}

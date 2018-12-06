@@ -8,6 +8,7 @@ module Codec.Xlsx.Types.RichText (
     RichTextRun(..)
   , RunProperties(..)
   , applyRunProperties
+  {-
     -- * Lenses
     -- ** RichTextRun
   , richTextRunProperties
@@ -28,14 +29,15 @@ module Codec.Xlsx.Types.RichText (
   , runPropertiesSize
   , runPropertiesUnderline
   , runPropertiesVertAlign
+  -}
   ) where
 
 import GHC.Generics (Generic)
 
-import Control.Lens hiding (element)
+-- import Control.Lens hiding (element)
 import Control.Monad
 import Control.DeepSeq (NFData)
-import Data.Default
+import Data.Default.Class
 import Data.Maybe (catMaybes)
 import Data.Text (Text)
 import Text.XML
@@ -180,8 +182,10 @@ instance NFData RunProperties
   Lenses
 -------------------------------------------------------------------------------}
 
+{-
 makeLenses ''RichTextRun
 makeLenses ''RunProperties
+-}
 
 {-------------------------------------------------------------------------------
   Default instances

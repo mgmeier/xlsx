@@ -7,10 +7,10 @@ module Codec.Xlsx.Types.Drawing.Common where
 import GHC.Generics (Generic)
 
 import Control.Arrow (first)
-import Control.Lens.TH
+-- import Control.Lens.TH
 import Control.Monad (join)
 import Control.DeepSeq (NFData)
-import Data.Default
+import Data.Default.Class
 import Data.Maybe (catMaybes, listToMaybe)
 import Data.Monoid ((<>))
 import Data.Text (Text)
@@ -315,7 +315,7 @@ instance NFData FillProperties
 solidRgb :: Text -> FillProperties
 solidRgb t = SolidFill . Just $ RgbColor t
 
-makeLenses ''ShapeProperties
+-- makeLenses ''ShapeProperties
 
 {-------------------------------------------------------------------------------
   Default instances

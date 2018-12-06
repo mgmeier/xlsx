@@ -32,6 +32,7 @@ module Codec.Xlsx.Types.StyleSheet (
   , LineStyle(..)
   , PatternType(..)
   , ReadingOrder(..)
+  {-
     -- * Lenses
     -- ** StyleSheet
   , styleSheetBorders
@@ -119,6 +120,8 @@ module Codec.Xlsx.Types.StyleSheet (
     -- ** Protection
   , protectionHidden
   , protectionLocked
+  -}
+
     -- * Helpers
     -- ** Number formats
   , fmtDecimals
@@ -128,9 +131,9 @@ module Codec.Xlsx.Types.StyleSheet (
   , firstUserNumFmtId
   ) where
 
-import Control.Lens hiding (element, elements, (.=))
+-- import Control.Lens hiding (element, elements, (.=))
 import Control.DeepSeq (NFData)
-import Data.Default
+import Data.Default.Class
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as M
 import Data.Maybe (catMaybes)
@@ -936,6 +939,7 @@ instance NFData ReadingOrder
   Lenses
 -------------------------------------------------------------------------------}
 
+{-
 makeLenses ''StyleSheet
 makeLenses ''CellXf
 makeLenses ''Dxf
@@ -948,6 +952,7 @@ makeLenses ''Fill
 makeLenses ''FillPattern
 makeLenses ''Font
 makeLenses ''Protection
+-}
 
 {-------------------------------------------------------------------------------
   Minimal stylesheet
@@ -963,37 +968,41 @@ makeLenses ''Protection
 -- but with some additions based on experimental evidence.
 minimalStyleSheet :: StyleSheet
 minimalStyleSheet = def
-    & styleSheetBorders .~ [defaultBorder]
-    & styleSheetFonts   .~ [defaultFont]
-    & styleSheetFills   .~ [fillNone, fillGray125]
-    & styleSheetCellXfs .~ [defaultCellXf]
+    { _styleSheetBorders  = [defaultBorder]
+    , _styleSheetFonts    = [defaultFont]
+    , _styleSheetFills    = [fillNone, fillGray125]
+    , _styleSheetCellXfs  = [defaultCellXf]
+    }
   where
     -- The 'Default' instance for 'Border' uses 'left' and 'right' rather than
     -- 'start' and 'end', because this is what Excel does (even though the spec
     -- says different)
     defaultBorder :: Border
     defaultBorder = def
-      & borderBottom .~ Just def
-      & borderTop    .~ Just def
-      & borderLeft   .~ Just def
-      & borderRight  .~ Just def
+      { _borderBottom = Just def
+      , _borderTop    = Just def
+      , _borderLeft   = Just def
+      , _borderRight  = Just def
+      }
 
     defaultFont :: Font
     defaultFont = def
-      & fontFamily .~ Just FontFamilySwiss
-      & fontSize   .~ Just 11
+      { _fontFamily = Just FontFamilySwiss
+      , _fontSize   = Just 11
+      }
 
     fillNone, fillGray125 :: Fill
     fillNone = def
-      & fillPattern .~ Just (def & fillPatternType .~ Just PatternTypeNone)
+      {_fillPattern = Just (def {_fillPatternType = Just PatternTypeNone})}
     fillGray125 = def
-      & fillPattern .~ Just (def & fillPatternType .~ Just PatternTypeGray125)
+      {_fillPattern = Just (def {_fillPatternType = Just PatternTypeGray125})}
 
     defaultCellXf :: CellXf
     defaultCellXf = def
-      & cellXfBorderId .~ Just 0
-      & cellXfFillId   .~ Just 0
-      & cellXfFontId   .~ Just 0
+      { _cellXfBorderId = Just 0
+      , _cellXfFillId   = Just 0
+      , _cellXfFontId   = Just 0
+      }
 
 {-------------------------------------------------------------------------------
   Default instances

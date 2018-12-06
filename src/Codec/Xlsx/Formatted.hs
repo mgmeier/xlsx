@@ -12,6 +12,7 @@ module Codec.Xlsx.Formatted
   , toFormattedCells
   , CondFormatted(..)
   , conditionallyFormatted
+  {-  
     -- * Lenses
     -- ** Format
   , formatAlignment
@@ -32,11 +33,12 @@ module Codec.Xlsx.Formatted
   , condfmtDxf
   , condfmtPriority
   , condfmtStopIfTrue
+  -}
   ) where
 
-import Control.Lens
+-- import Control.Lens
 import Control.Monad.State hiding (forM_, mapM)
-import Data.Default
+import Data.Default.Class
 import Data.Foldable (asum, forM_)
 import Data.Function (on)
 import Data.List (foldl', groupBy, sortBy, sortBy)
@@ -65,7 +67,14 @@ data FormattingState = FormattingState {
   , _formattingMerges  :: [Range] -- ^ In reverse order
   }
 
-makeLenses ''FormattingState
+-- makeLenses ''FormattingState
+type Lens t a = (t -> a, a -> t -> t)
+formattingBorders = (_formattingBorders, \v s -> s {_formattingBorders = v})
+formattingFills   = (_formattingFills, \v s -> s {_formattingFills = v})
+formattingFonts   = (_formattingFonts, \v s -> s {_formattingFonts = v})
+formattingNumFmts = (_formattingNumFmts, \v s -> s {_formattingNumFmts = v})
+formattingCellXfs = (_formattingCellXfs, \v s -> s {_formattingCellXfs = v})
+
 
 stateFromStyleSheet :: StyleSheet -> FormattingState
 stateFromStyleSheet StyleSheet{..} = FormattingState{
@@ -92,20 +101,17 @@ updateStyleSheetFromState sSheet FormattingState{..} = sSheet
     , _styleSheetNumFmts = M.fromList . map swap $ M.toList _formattingNumFmts
     }
 
-getId :: Ord a => Lens' FormattingState (Map a Int) -> a -> State FormattingState Int
+getId :: Ord a => Lens FormattingState (Map a Int) -> a -> State FormattingState Int
 getId = getId' 0
 
-getId' :: Ord a
-       => Int
-       -> Lens' FormattingState (Map a Int)
-       -> a
-       -> State FormattingState Int
-getId' k f v = do
-    aMap <- use f
+getId' :: Ord a => Int -> Lens FormattingState (Map a Int) -> a -> State FormattingState Int
+getId' k (getter, setter) v = do
+    aMap <- gets getter -- use f
     case M.lookup v aMap of
       Just anId -> return anId
       Nothing  -> do let anId = k + M.size aMap
-                     f %= M.insert v anId
+                     -- f %= M.insert v anId
+                     modify' $ setter (M.insert v anId aMap)
                      return anId
 
 {-------------------------------------------------------------------------------
@@ -119,7 +125,7 @@ data FormattedCondFmt = FormattedCondFmt
     , _condfmtStopIfTrue :: Maybe Bool
     } deriving (Eq, Show, Generic)
 
-makeLenses ''FormattedCondFmt
+-- makeLenses ''FormattedCondFmt
 
 {-------------------------------------------------------------------------------
   Cell with formatting
@@ -142,7 +148,7 @@ data Format = Format
     , _formatQuotePrefix  :: Maybe Bool
     } deriving (Eq, Show, Generic)
 
-makeLenses ''Format
+-- makeLenses ''Format
 
 -- | Cell with formatting. '_cellStyle' property of '_formattedCell' is ignored
 --
@@ -154,7 +160,7 @@ data FormattedCell = FormattedCell
     , _formattedRowSpan :: Int
     } deriving (Eq, Show, Generic)
 
-makeLenses ''FormattedCell
+-- makeLenses ''FormattedCell
 
 {-------------------------------------------------------------------------------
   Default instances
@@ -234,7 +240,7 @@ formatted cs styleSheet =
    in Formatted {
           formattedCellMap    = M.fromList (concat cs')
         , formattedStyleSheet = styleSheet'
-        , formattedMerges     = reverse (finalSt ^. formattingMerges)
+        , formattedMerges     = reverse (_formattingMerges finalSt)
         }
 
 formatWorkbook :: [(Text, Map (Int, Int) FormattedCell)] -> StyleSheet -> Xlsx
@@ -246,11 +252,11 @@ formatWorkbook nfcss initStyle = extract go
         cs' <- forM (M.toList fcs) $ \(rc, fc) -> formatCell rc fc
         merges <- reverse . _formattingMerges <$> get
         return ( name
-               , def & wsCells  .~ M.fromList (concat cs')
-                     & wsMerges .~ merges)
+               , def { _wsCells = M.fromList (concat cs')
+                     , _wsMerges = merges})
     extract (sheets, st) =
-      def & xlSheets .~ sheets
-          & xlStyles .~ renderStyleSheet (updateStyleSheetFromState initStyle st)
+      def { _xlSheets = sheets
+          , _xlStyles = renderStyleSheet (updateStyleSheetFromState initStyle st)}
 
 -- | reverse to 'formatted' which allows to get a map of formatted cells
 -- from an existing worksheet and its workbook's style sheet
@@ -295,8 +301,9 @@ toFormattedCells m merges StyleSheet{..} = applyMerges $ M.map toFormattedCell m
         let ((r1, c1), (r2, c2)) = fromJustNote "fromRange" $ fromRange range
             nonTopLeft = tail [(r, c) | r<-[r1..r2], c<-[c1..c2]]
         forM_ nonTopLeft (modify . M.delete)
-        at (r1, c1) . non def . formattedRowSpan .= (r2 - r1 +1)
-        at (r1, c1) . non def . formattedColSpan .= (c2 - c1 +1)
+        -- TODO
+        -- at (r1, c1) . non def . formattedRowSpan .= (r2 - r1 +1)
+        -- at (r1, c1) . non def . formattedColSpan .= (c2 - c1 +1)
 
 data CondFormatted = CondFormatted {
     -- | The resulting stylesheet
@@ -307,12 +314,12 @@ data CondFormatted = CondFormatted {
 
 conditionallyFormatted :: Map CellRef [FormattedCondFmt] -> StyleSheet -> CondFormatted
 conditionallyFormatted cfs styleSheet = CondFormatted
-    { condformattedStyleSheet  = styleSheet & styleSheetDxfs .~ finalDxfs
+    { condformattedStyleSheet  = styleSheet { _styleSheetDxfs = finalDxfs }
     , condformattedFormattings = fmts
     }
   where
     (cellFmts, dxf2id) = runState (mapM (mapM mapDxf) cfs) dxf2id0
-    dxf2id0 = fromValueList (styleSheet ^. styleSheetDxfs)
+    dxf2id0 = fromValueList (_styleSheetDxfs styleSheet)
     fmts = M.fromList . map mergeSqRef . groupBy ((==) `on` snd) .
            sortBy (comparing snd) $ M.toList cellFmts
     mergeSqRef cellRefs2fmt =
@@ -328,7 +335,8 @@ conditionallyFormatted cfs styleSheet = CondFormatted
 formatCell :: (Int, Int) -> FormattedCell -> State FormattingState [((Int, Int), Cell)]
 formatCell (row, col) cell = do
     let (block, mMerge) = cellBlock (row, col) cell
-    forM_ mMerge $ \merge -> formattingMerges %= (:) merge
+    -- forM_ mMerge $ \merge -> formattingMerges %= (:) merge
+    forM_ mMerge $ \merge -> modify (\s -> s {_formattingMerges = merge : _formattingMerges s})
     mapM go block
   where
     go :: ((Int, Int), FormattedCell) -> State FormattingState ((Int, Int), Cell)
@@ -363,16 +371,18 @@ cellBlock (row, col) cell@FormattedCell{..} = (block, merge)
     cellAt (row', col') =
       if row' == row && col == col'
         then cell
-        else def & formattedFormat . formatBorder ?~ borderAt (row', col')
+        -- else def & formattedFormat . formatBorder ?~ borderAt (row', col')
+        else def {_formattedFormat = def {_formatBorder = Just $ borderAt (row', col')}}
 
     border = _formatBorder _formattedFormat
 
     borderAt :: (Int, Int) -> Border
     borderAt (row', col') = def
-      & borderTop    .~ do guard (row' == topRow)    ; _borderTop    =<< border
-      & borderBottom .~ do guard (row' == bottomRow) ; _borderBottom =<< border
-      & borderLeft   .~ do guard (col' == leftCol)   ; _borderLeft   =<< border
-      & borderRight  .~ do guard (col' == rightCol)  ; _borderRight  =<< border
+      { _borderTop     = do guard (row' == topRow)    ; _borderTop    =<< border
+      , _borderBottom  = do guard (row' == bottomRow) ; _borderBottom =<< border
+      , _borderLeft    = do guard (col' == leftCol)   ; _borderLeft   =<< border
+      , _borderRight   = do guard (col' == rightCol)  ; _borderRight  =<< border
+      }
 
     topRow, bottomRow, leftCol, rightCol :: Int
     topRow    = row
@@ -388,7 +398,7 @@ constructCellXf FormattedCell{_formattedFormat=Format{..}} = do
     mBorderId <- getId formattingBorders `mapM` _formatBorder
     mFillId   <- getId formattingFills   `mapM` _formatFill
     mFontId   <- getId formattingFonts   `mapM` _formatFont
-    let getFmtId :: Lens' FormattingState (Map Text Int) -> NumberFormat -> State FormattingState Int
+    let getFmtId :: Lens FormattingState (Map Text Int) -> NumberFormat -> State FormattingState Int
         getFmtId _ (StdNumberFormat  fmt) = return (stdNumberFormatId fmt)
         getFmtId l (UserNumberFormat fmt) = getId' firstUserNumFmtId l fmt
     mNumFmtId <- getFmtId formattingNumFmts `mapM` _formatNumberFormat

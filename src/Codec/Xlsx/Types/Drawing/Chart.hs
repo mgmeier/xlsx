@@ -6,9 +6,9 @@ module Codec.Xlsx.Types.Drawing.Chart where
 
 import GHC.Generics (Generic)
 
-import Control.Lens.TH
+-- import Control.Lens.TH
 import Control.DeepSeq (NFData)
-import Data.Default
+import Data.Default.Class
 import Data.Maybe (catMaybes, listToMaybe, maybeToList)
 import Data.Text (Text)
 import Text.XML
@@ -316,7 +316,7 @@ data TickMark
   deriving (Eq, Show, Generic)
 instance NFData TickMark
 
-makeLenses ''DataPoint
+-- makeLenses ''DataPoint
 
 {-------------------------------------------------------------------------------
   Default instances

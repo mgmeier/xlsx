@@ -20,6 +20,7 @@ module Codec.Xlsx.Types (
     , Cell(..)
     , RowHeight(..)
     , RowProperties (..)
+    {-
     -- * Lenses
     -- ** Workbook
     , xlSheets
@@ -47,6 +48,8 @@ module Codec.Xlsx.Types (
     , Cell.cellStyle
     , Cell.cellComment
     , Cell.cellFormula
+    -}
+
     -- * Style helpers
     , emptyStyles
     , renderStyleSheet
@@ -61,10 +64,10 @@ module Codec.Xlsx.Types (
     ) where
 
 import Control.Exception (SomeException, toException)
-import Control.Lens.TH
+-- import Control.Lens.TH
 import Control.DeepSeq (NFData)
 import qualified Data.ByteString.Lazy as L
-import Data.Default
+import Data.Default.Class
 import Data.Function (on)
 import Data.List (groupBy)
 import Data.Map (Map)
@@ -191,7 +194,7 @@ data Worksheet = Worksheet
   } deriving (Eq, Show, Generic)
 instance NFData Worksheet
 
-makeLenses ''Worksheet
+-- makeLenses ''Worksheet
 
 instance Default Worksheet where
   def =
@@ -256,7 +259,7 @@ newtype DefinedNames = DefinedNames [(Text, Maybe Text, Text)]
   deriving (Eq, Show, Generic)
 instance NFData DefinedNames
 
-makeLenses ''Xlsx
+-- makeLenses ''Xlsx
 
 instance Default Xlsx where
     def = Xlsx [] emptyStyles def M.empty DateBase1900

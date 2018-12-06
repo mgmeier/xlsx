@@ -11,7 +11,8 @@ module Codec.Xlsx.Types.PageSetup (
   , Orientation(..)
   , PageOrder(..)
   , PaperSize(..)
-    -- * Lenses
+  {-  
+  -- * Lenses
     -- ** PageSetup
   , pageSetupBlackAndWhite
   , pageSetupCellComments
@@ -32,11 +33,12 @@ module Codec.Xlsx.Types.PageSetup (
   , pageSetupUseFirstPageNumber
   , pageSetupUsePrinterDefaults
   , pageSetupVerticalDpi
+  -}
   ) where
 
-import Control.Lens (makeLenses)
+-- import Control.Lens (makeLenses)
 import Control.DeepSeq (NFData)
-import Data.Default
+import Data.Default.Class
 import qualified Data.Map as Map
 import Data.Maybe (catMaybes)
 import Data.Text (Text)
@@ -300,7 +302,7 @@ instance Default PageSetup where
   Lenses
 -------------------------------------------------------------------------------}
 
-makeLenses ''PageSetup
+-- makeLenses ''PageSetup
 
 {-------------------------------------------------------------------------------
   Rendering

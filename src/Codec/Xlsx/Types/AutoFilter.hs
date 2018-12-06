@@ -8,10 +8,10 @@ module Codec.Xlsx.Types.AutoFilter where
 
 import Control.Arrow (first)
 import Control.DeepSeq (NFData)
-import Control.Lens (makeLenses)
+-- import Control.Lens (makeLenses)
 import Data.Bool (bool)
 import Data.ByteString (ByteString)
-import Data.Default
+import Data.Default.Class
 import Data.Foldable (asum)
 import Data.Map (Map)
 import qualified Data.Map as M
@@ -277,7 +277,7 @@ data AutoFilter = AutoFilter
   } deriving (Eq, Show, Generic)
 instance NFData AutoFilter
 
-makeLenses ''AutoFilter
+-- makeLenses ''AutoFilter
 
 
 {-------------------------------------------------------------------------------

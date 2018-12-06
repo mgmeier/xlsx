@@ -18,7 +18,8 @@ module Codec.Xlsx.Types.ConditionalFormatting
   , IconSetType(..)
   , DataBarOptions(..)
   , dataBarWithColor
-    -- * Lenses
+  {-
+  -- * Lenses
     -- ** CfRule
   , cfrCondition
   , cfrDxfId
@@ -36,16 +37,17 @@ module Codec.Xlsx.Types.ConditionalFormatting
   , dboMinimum
   , dboMaximum
   , dboColor
+  -}
     -- * Misc
   , topCfPriority
   ) where
 
 import Control.Arrow (first, right)
 import Control.DeepSeq (NFData)
-import Control.Lens (makeLenses)
+-- import Control.Lens (makeLenses)
 import Data.Bool (bool)
 import Data.ByteString (ByteString)
-import Data.Default
+import Data.Default.Class
 import Data.Map (Map)
 import qualified Data.Map as M
 import Data.Maybe
@@ -376,9 +378,11 @@ instance Default IconSetOptions where
     , _isoShowValue = True
     }
 
+{-
 makeLenses ''CfRule
 makeLenses ''IconSetOptions
 makeLenses ''DataBarOptions
+-}
 
 type ConditionalFormatting = [CfRule]
 

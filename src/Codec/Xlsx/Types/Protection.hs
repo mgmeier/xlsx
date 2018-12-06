@@ -8,6 +8,7 @@ module Codec.Xlsx.Types.Protection
   , noSheetProtection
   , LegacyPassword
   , legacyPassword
+  {-
   -- * Lenses
   , sprLegacyPassword
   , sprSheet              
@@ -26,12 +27,13 @@ module Codec.Xlsx.Types.Protection
   , sprAutoFilter         
   , sprPivotTables        
   , sprSelectUnlockedCells
+  -}
   ) where
 
 import GHC.Generics (Generic)
 
 import Control.Arrow (first)
-import Control.Lens (makeLenses)
+-- import Control.Lens (makeLenses)
 import Control.DeepSeq (NFData)
 import Data.Bits
 import Data.Char
@@ -133,7 +135,7 @@ data SheetProtection = SheetProtection
   } deriving (Eq, Show, Generic)
 instance NFData SheetProtection
 
-makeLenses ''SheetProtection
+-- makeLenses ''SheetProtection
 
 {-------------------------------------------------------------------------------
   Base instances
